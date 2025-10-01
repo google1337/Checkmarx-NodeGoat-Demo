@@ -31,7 +31,7 @@ jobs:
           path: '.'
           output_path: results-dir
           output_formats: 'json,sarif'
-          platform_type: 'ansible,azureresourcemanager,buildah,cicd,cloudformation,crossplane,dockercompose,dockerfile,grpc,googledeploymentmanager,knative,kubernetes,openapi,pulumi,serverlessfw,terraform'
+          platform_type: 'ansible,azureresourcemanager,buildah,cloudformation,crossplane,dockercompose,dockerfile,grpc,googledeploymentmanager,knative,kubernetes,openapi,pulumi,serverlessfw,terraform'
           exclude_paths: 'node_modules,.github/workflows'
 
       - name: Upload SARIF to Security tab
