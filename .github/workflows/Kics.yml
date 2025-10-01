@@ -34,10 +34,10 @@ jobs:
           output_path: kics-results
           output_formats: 'json,sarif,html'
           
-          # Platform types to scan
-          platform_type: 'Dockerfile,Docker'
+          # Platform types to scan - FIXED: Changed 'Docker' to 'DockerCompose'
+          platform_type: 'Dockerfile,DockerCompose'
           
-          # Fail on specific severities (for demo, we'll capture all)
+          # Fail on specific severities
           fail_on: 'high,medium'
           ignore_on_exit: 'none'
           
