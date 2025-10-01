@@ -31,7 +31,7 @@ jobs:
           path: '.'
           output_path: results-dir
           output_formats: 'json,sarif'
-          exclude_paths: 'node_modules'
+          exclude_paths: 'node_modules,.github/workflows'
           # platform_type removed - scans all supported IaC types
 
       - name: Upload SARIF to Security tab
