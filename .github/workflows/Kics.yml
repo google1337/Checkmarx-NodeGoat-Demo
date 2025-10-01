@@ -1,49 +1,112 @@
 name: KICS IaC Security Scan
+
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
 
 jobs:
   kics-scan:
+    name: KICS Infrastructure Scan
     runs-on: ubuntu-latest
-    name: Run KICS Scan
-    permissions:
-      contents: read
-      security-events: write
+    
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Create results directory
-        run: mkdir -p results-dir
-
-      - name: List files for debugging
-        run: |
-          echo "Files in repository:"
-          find . -name "*.tf" -o -name "Dockerfile*" -o -name "*.yaml" -o -name "*.yml" | head -20
+      - name: Create Results Directory
+        run: mkdir -p kics-results
 
       - name: Run KICS Scan
-        uses: Checkmarx/kics-github-action@v2.1.14
-        continue-on-error: true   # ✅ prevents failure
+        uses: checkmarx/kics-github-action@v2.1.14
         with:
-          path: '.'
-          output_path: results-dir
-          output_formats: 'json,sarif'
-          platform_type: 'dockerfile,kubernetes,terraform'
-          exclude_paths: 'node_modules'
-          # removed fail_on so it never blocks pipeline
+          # Scan paths - targeting IaC files in NodeGoat
+          path: 'Dockerfile,docker-compose.yml,config'
+          
+          # Output configuration
+          output_path: kics-results
+          output_formats: 'json,sarif,html'
+          
+          # Platform types to scan
+          platform_type: 'Dockerfile,Docker'
+          
+          # Fail on specific severities (for demo, we'll capture all)
+          fail_on: 'high,medium'
+          ignore_on_exit: 'none'
+          
+          # Enable PR comments for better visibility
+          enable_comments: true
+          enable_jobs_summary: true
+          enable_annotations: true
+          comments_with_queries: true
+          
+          # Token for PR comments
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Exclude paths that don't need scanning
+          exclude_paths: 'node_modules/**,kics-results/**,.git/**'
+          
+          # Verbose output for detailed logs
+          verbose: true
+          
+          # Timeout (seconds)
+          timeout: 120
 
-      - name: Upload SARIF to Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()   # ✅ always runs even if KICS errors
-        with:
-          sarif_file: results-dir/results.sarif
-
-      - name: Upload All Results as Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Display KICS Results Summary
         if: always()
+        run: |
+          echo "📊 KICS Scan Completed!"
+          echo "================================"
+          if [ -f kics-results/results.json ]; then
+            echo "✅ Results file generated"
+            echo ""
+            echo "📈 Quick Stats:"
+            cat kics-results/results.json | jq -r '
+              "Total Issues: \(.total_counter // 0)",
+              "High: \(.severity_counters.HIGH // 0)",
+              "Medium: \(.severity_counters.MEDIUM // 0)",
+              "Low: \(.severity_counters.LOW // 0)",
+              "Info: \(.severity_counters.INFO // 0)"
+            '
+          else
+            echo "⚠️  No results file found"
+          fi
+
+      - name: Upload KICS Results as Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: kics-results
-          path: results-dir/
+          name: kics-scan-results
+          path: kics-results/
+          retention-days: 30
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: kics-results/results.sarif
+          category: kics-iac-scan
+
+      - name: Comment PR with HTML Report Link
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('kics-results/results.html')) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '📊 **KICS Infrastructure Scan Complete!**\n\n' +
+                      'Download the detailed HTML report from the workflow artifacts section.'
+              });
+            }
