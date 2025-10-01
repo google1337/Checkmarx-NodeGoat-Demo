@@ -23,7 +23,6 @@ jobs:
         run: |
           echo "Files in repository:"
           find . -name "*.tf" -o -name "Dockerfile*" -o -name "*.yaml" -o -name "*.yml" | head -20
-
       - name: Run KICS Scan
         uses: Checkmarx/kics-github-action@v1.7.0
         continue-on-error: true   # ✅ prevents failure
