@@ -33,6 +33,7 @@ jobs:
           output_formats: 'json,sarif'
           platform_type: 'ansible,azureresourcemanager,buildah,cloudformation,crossplane,dockercompose,dockerfile,grpc,googledeploymentmanager,knative,kubernetes,openapi,pulumi,serverlessfw,terraform'
           exclude_paths: 'node_modules,.github/workflows'
+          fail_on: 'critical,high'
 
       - name: Upload SARIF to Security tab
         uses: github/codeql-action/upload-sarif@v3
